@@ -1,0 +1,24 @@
+# Secrets — never commit these
+.env
+backend/.env
+*.env.local
+
+# Gmail tokens — contain live OAuth credentials
+backend/gmail_token.json
+gmail_token.json
+
+# Python
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.pyc
+backend/*.db
+backend/*.sqlite
+
+# Node / build artifacts
+frontend/node_modules/
+frontend/dist/
+
+# OS
+.DS_Store
+Thumbs.db

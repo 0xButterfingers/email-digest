@@ -1,0 +1,166 @@
+.settings {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: var(--spacing-2xl);
+}
+
+.header h1 {
+  margin-bottom: var(--spacing-sm);
+}
+
+.header p {
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.section {
+  margin-bottom: var(--spacing-2xl);
+}
+
+.sectionTitle {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  margin-bottom: var(--spacing-lg);
+}
+
+.settingBlock {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg);
+}
+
+.settingInfo {
+  flex: 1;
+}
+
+.settingInfo h3 {
+  margin-bottom: var(--spacing-sm);
+}
+
+.settingInfo p {
+  margin: 0;
+}
+
+.settingAction {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--spacing-md);
+  min-width: 200px;
+}
+
+.accountInfo {
+  text-align: right;
+}
+
+.accountInfo p {
+  margin: var(--spacing-xs) 0;
+}
+
+.accountInfo .text-primary {
+  color: var(--color-accent);
+}
+
+.statusInfo {
+  text-align: right;
+}
+
+.statusInfo p {
+  margin: var(--spacing-xs) 0;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--spacing-lg);
+}
+
+.infoItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background-color: var(--color-bg-tertiary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
+.infoValue {
+  font-family: 'Courier New', monospace;
+  font-size: var(--font-size-sm);
+  color: var(--color-accent);
+  word-break: break-all;
+}
+
+.envList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.envItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-md);
+  background-color: var(--color-bg-tertiary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
+.envItem code {
+  font-family: 'Courier New', monospace;
+  background-color: var(--color-bg-primary);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  color: var(--color-accent);
+  font-weight: 500;
+  min-width: 200px;
+}
+
+.envItem span {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+@media (max-width: 768px) {
+  .settingBlock {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .settingAction {
+    align-items: stretch;
+  }
+
+  .settingAction button {
+    width: 100%;
+  }
+
+  .accountInfo {
+    text-align: left;
+  }
+
+  .statusInfo {
+    text-align: left;
+  }
+
+  .infoGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .envItem {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .envItem code {
+    width: 100%;
+    min-width: auto;
+  }
+}

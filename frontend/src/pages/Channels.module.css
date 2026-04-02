@@ -1,0 +1,88 @@
+.channels {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: var(--spacing-2xl);
+}
+
+.header h1 {
+  margin-bottom: var(--spacing-sm);
+}
+
+.header p {
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.section {
+  margin-bottom: var(--spacing-2xl);
+}
+
+.sectionTitle {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  margin-bottom: var(--spacing-lg);
+}
+
+.channelGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--spacing-lg);
+}
+
+.channelCard {
+  padding: var(--spacing-lg);
+}
+
+.channelCard h3 {
+  margin-bottom: var(--spacing-sm);
+}
+
+.channelCard p {
+  margin-bottom: var(--spacing-sm);
+}
+
+.guidesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--spacing-lg);
+}
+
+.guideCard {
+  padding: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.guideIcon {
+  font-size: 3rem;
+  text-align: center;
+}
+
+.guideCard h3 {
+  margin: 0;
+  text-align: center;
+}
+
+.guideSteps {
+  padding-left: var(--spacing-lg);
+  color: var(--color-text-secondary);
+  line-height: 1.8;
+}
+
+.guideSteps li {
+  margin-bottom: var(--spacing-sm);
+}
+
+@media (max-width: 768px) {
+  .channelGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .guidesGrid {
+    grid-template-columns: 1fr;
+  }
+}

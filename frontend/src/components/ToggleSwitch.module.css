@@ -1,0 +1,51 @@
+.toggleLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggleInput {
+  display: none;
+}
+
+.toggleSwitch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  background-color: var(--color-border);
+  border-radius: 12px;
+  transition: background-color var(--transition-base);
+}
+
+.toggleSwitch::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background-color: white;
+  border-radius: 50%;
+  top: 2px;
+  left: 2px;
+  transition: left var(--transition-base);
+}
+
+.toggleInput:checked + .toggleSwitch {
+  background-color: var(--color-success);
+}
+
+.toggleInput:checked + .toggleSwitch::after {
+  left: 22px;
+}
+
+.toggleInput:disabled + .toggleSwitch {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toggleText {
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
