@@ -1,6 +1,8 @@
 """Language model service for summarizing emails using Claude."""
 
+import json
 import logging
+import re
 from typing import List, Dict, Any
 
 from anthropic import Anthropic
@@ -51,10 +53,18 @@ class LLMService:
             # Split on the marker Claude is instructed to include
             if "---DETAILED---" in raw:
                 parts = raw.split("---DETAILED---", 1)
-                return {
-                    "executive": parts[0].strip(),
-                    "detailed": parts[1].strip(),
-                }
+                executive = parts[0].strip()
+                detailed_raw = parts[1].strip()
+
+                # Strip markdown code fences (```json ... ```)
+                detailed_raw = re.sub(r"^```(?:json)?\s*", "", detailed_raw)
+                detailed_raw = re.sub(r"\s*```$", "", detailed_raw)
+                try:
+                    detailed_items = json.loads(detailed_raw)
+                    return {"executive": executive, "detailed_items": detailed_items}
+                except json.JSONDecodeError:
+                    logger.warning("LLM returned invalid JSON, falling back to plain text")
+                    return {"executive": executive, "detailed": detailed_raw}
 
             # Fallback: use full response for both
             return {"executive": raw.strip(), "detailed": raw.strip()}
@@ -124,29 +134,19 @@ class LLMService:
             "• [One-line highlight — bank name, instrument, key call]\n\n"
             "Omit any category heading that has no items.\n\n"
             "=== SECTION 2: FULL DETAILED REPORT (after ---DETAILED---) ===\n"
-            "Plain text only (no HTML tags) — this will be rendered in a PDF.\n"
-            "Structure — use exactly these headings:\n\n"
-            "Macro\n"
-            "  - [Instrument/Topic]: [key figure or call]\n"
-            "    [2-3 sentences of key points copied closely from the email]\n"
-            "    Source: [sender email] | [subject line] | [date]\n\n"
-            "FX\n"
-            "  - [Currency pair or topic]: [key figure or call]\n"
-            "    [2-3 sentences]\n"
-            "    Source: [sender email] | [subject line] | [date]\n\n"
-            "Bonds\n"
-            "  - [Instrument/issuer]: [yield/spread/rating]\n"
-            "    [2-3 sentences]\n"
-            "    Source: [sender email] | [subject line] | [date]\n\n"
-            "Others\n"
-            "  - [Instrument/company]: [rating/price target/key figure]\n"
-            "    [2-3 sentences]\n"
-            "    Source: [sender email] | [subject line] | [date]\n\n"
+            "Output a JSON array only — no prose, no headings, no HTML tags.\n"
+            "Each element must have exactly these fields:\n\n"
+            '  {\n'
+            '    "category": "Macro" | "FX" | "Bonds" | "Others",\n'
+            '    "headline": "short headline — instrument/topic and key figure or call",\n'
+            '    "body": "2-3 sentences of key points copied closely from the email",\n'
+            '    "source_email_index": <0-based integer index of the source email>\n'
+            '  }\n\n'
             "Rules for Section 2:\n"
-            "- Every item MUST have a Source line.\n"
+            "- Return ONLY the JSON array, with no surrounding text or markdown fences.\n"
             "- Include all explicitly stated figures — copy them exactly as written.\n"
-            "- Omit any category that has no items from the emails.\n"
-            "- No HTML tags.\n\n"
+            "- Omit any item that has no useful data from the emails.\n"
+            "- Do not use HTML tags anywhere in the JSON values.\n\n"
             f"Emails:\n{formatted_emails}"
         )
 
