@@ -179,7 +179,7 @@ class GmailService:
         query: str,
         max_results: int = 10,
         extract_images: bool = True,
-    ) -> List[Dict[str, Any]]:
+    ) -> tuple:
         """
         Fetch emails from Gmail.
 
@@ -187,9 +187,10 @@ class GmailService:
             service: Gmail API service object
             query: Gmail search query
             max_results: Maximum number of emails to fetch
+            extract_images: Whether to extract inline images
 
         Returns:
-            List of email data
+            Tuple of (emails, raw_payloads) where raw_payloads is {message_id: payload}
         """
         try:
             # Get email message IDs
@@ -200,10 +201,11 @@ class GmailService:
             messages = results.get("messages", [])
             if not messages:
                 logger.info("No emails found matching query")
-                return []
+                return [], {}
 
             # Get full message data
             emails = []
+            raw_payloads = {}
             for message in messages:
                 try:
                     msg = (
@@ -213,6 +215,7 @@ class GmailService:
                         .execute()
                     )
 
+                    raw_payloads[msg["id"]] = msg["payload"]
                     email_data = self._parse_email(msg, service if extract_images else None)
                     emails.append(email_data)
                 except HttpError as e:
@@ -220,7 +223,7 @@ class GmailService:
                     continue
 
             logger.info(f"Successfully fetched {len(emails)} emails")
-            return emails
+            return emails, raw_payloads
 
         except HttpError as e:
             logger.error(f"Gmail API error: {e}")
@@ -254,6 +257,7 @@ class GmailService:
 
             return {
                 "id": message["id"],
+                "gmail_message_id": message["id"],
                 "subject": subject,
                 "sender": sender,
                 "date": date,
