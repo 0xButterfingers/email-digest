@@ -50,6 +50,9 @@ class Settings(BaseSettings):
     SCHEDULER_TIMEZONE: str = "UTC"
     SCHEDULER_POOL_SIZE: int = 10
 
+    # Email Archive
+    ARCHIVE_BASE_URL: str = "https://archive.0xbutterfingers.xyz"
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
