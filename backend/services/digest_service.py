@@ -20,6 +20,8 @@ from services.gmail_service import GmailService
 from services.llm_service import LLMService
 from services.channel_service import ChannelService
 from services.pdf_service import PdfService
+from services.email_archive_service import EmailArchiveService
+from core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +37,7 @@ class DigestService:
         self.llm_service = LLMService()
         self.channel_service = ChannelService()
         self.pdf_service = PdfService()
+        self.archive_service = EmailArchiveService()
 
     async def run_digest(
         self, digest_id: int, session: AsyncSession
@@ -74,7 +77,7 @@ class DigestService:
             logger.info(f"Starting digest run for {digest.name}")
 
             # Step 1: Fetch emails
-            emails = await self._fetch_emails(digest, session)
+            emails, raw_payloads, gmail_svc = await self._fetch_emails(digest, session)
             if not emails:
                 logger.info(f"No emails found for digest {digest.name}")
                 history.email_count = 0
@@ -83,10 +86,17 @@ class DigestService:
                 await session.commit()
                 return history
 
+            # Step 1b: Archive emails
+            archive_urls = {}
+            try:
+                archive_urls = self.archive_service.archive_emails(emails, raw_payloads, gmail_svc)
+                logger.info(f"Archived {len(archive_urls)} emails")
+            except Exception as e:
+                logger.error(f"Email archiving failed (continuing without): {e}")
+
             # Step 2: Summarize emails — returns executive + detailed
             summaries = self.llm_service.summarize_emails(emails, digest.name)
             executive_summary = summaries["executive"]
-            detailed_summary = summaries["detailed"]
             history.email_count = len(emails)
             history.summary = executive_summary
 
@@ -100,13 +110,29 @@ class DigestService:
                         seen_filenames.add(img["filename"])
             logger.info(f"Collected {len(all_images)} images across {len(emails)} emails")
 
-            # Step 3: Generate PDF from detailed summary + images
+            # Step 3: Generate PDF from structured items + images
             run_date = datetime.utcnow().strftime("%Y-%m-%d")
             pdf_filename = f"{digest.name.replace(' ', '_')}_{run_date}.pdf"
             try:
-                pdf_bytes = self.pdf_service.generate(
-                    detailed_summary, digest.name, images=all_images or None
-                )
+                if "detailed_items" in summaries:
+                    pdf_bytes = self.pdf_service.generate(
+                        items=summaries["detailed_items"],
+                        emails=emails,
+                        archive_urls=archive_urls,
+                        digest_name=digest.name,
+                        archive_base_url=settings.ARCHIVE_BASE_URL,
+                        images=all_images or None,
+                    )
+                else:
+                    # Fallback: LLM returned plain text
+                    pdf_bytes = self.pdf_service.generate(
+                        items=[],
+                        emails=emails,
+                        archive_urls=archive_urls,
+                        digest_name=digest.name,
+                        archive_base_url=settings.ARCHIVE_BASE_URL,
+                        images=all_images or None,
+                    )
                 logger.info(f"Generated PDF ({len(pdf_bytes)} bytes)")
             except Exception as e:
                 logger.error(f"PDF generation failed: {e}")
@@ -173,7 +199,7 @@ class DigestService:
 
     async def _fetch_emails(
         self, digest: DigestConfig, session: AsyncSession
-    ) -> List[dict]:
+    ) -> tuple:
         """
         Fetch emails matching digest filters.
 
@@ -200,7 +226,7 @@ class DigestService:
 
             if not access_token:
                 logger.error(f"No Gmail token for digest {digest.name}")
-                return []
+                return ([], {}, None)
 
             # Refresh token if needed
             if refresh_token:
@@ -243,13 +269,13 @@ class DigestService:
             )
 
             # Fetch emails
-            emails = self.gmail_service.fetch_emails(service, query, max_results=10)
+            emails, raw_payloads = self.gmail_service.fetch_emails(service, query, max_results=10)
             logger.info(f"Fetched {len(emails)} emails for digest {digest.name}")
-            return emails
+            return (emails, raw_payloads, service)
 
         except Exception as e:
             logger.error(f"Error fetching emails: {e}")
-            return []
+            return ([], {}, None)
 
     async def _get_channels(
         self, digest_id: int, session: AsyncSession
