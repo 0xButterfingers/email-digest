@@ -181,13 +181,14 @@ class PdfService:
                 if idx < len(emails):
                     sender_name = _extract_sender_name(emails[idx].get("sender", "Unknown"))
 
+                pdf.set_x(pdf.l_margin)
                 pdf.set_font("Helvetica", "I", 8)
                 pdf.set_text_color(120, 120, 120)
                 if footnote_num > 0:
                     source_text = f"Source: {sender_name} [{footnote_num}]"
                 else:
                     source_text = f"Source: {sender_name}"
-                pdf.cell(0, 5, _s(source_text), new_x="LMARGIN", new_y="NEXT")
+                pdf.multi_cell(0, 5, _s(source_text))
                 pdf.ln(4)
 
     def _render_footnotes(self, pdf, footnotes):
