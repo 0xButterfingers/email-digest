@@ -23,10 +23,10 @@ async function apiCall(endpoint, options = {}) {
 export const digests = {
   list: () => apiCall('/digests/'),
   create: (data) => apiCall('/digests/', { method: 'POST', body: JSON.stringify(data) }),
-  get: (id) => apiCall(`/digests/${id}/`),
-  update: (id, data) => apiCall(`/digests/${id}/`, { method: 'PUT', body: JSON.stringify(data) }),
-  delete: (id) => apiCall(`/digests/${id}/`, { method: 'DELETE' }),
-  run: (id) => apiCall(`/digests/${id}/run/`, { method: 'POST' }),
+  get: (id) => apiCall(`/digests/${id}`),
+  update: (id, data) => apiCall(`/digests/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id) => apiCall(`/digests/${id}`, { method: 'DELETE' }),
+  run: (id) => apiCall(`/digests/${id}/run`, { method: 'POST' }),
 }
 
 // Filter endpoints
