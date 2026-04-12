@@ -3,27 +3,34 @@ version: "3.8"
 services:
   backend:
     build: ./backend
-    expose:
-      - "8000"
+    image: app-backend
     env_file:
       - .env
     volumes:
       - db_data:/app/data
       - ./backend/gmail_token.json:/app/gmail_token.json
-    restart: unless-stopped
+      - email_archive:/app/email-archive
+    expose:
+      - "8000"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
       interval: 30s
       timeout: 10s
       retries: 3
 
   frontend:
     build: ./frontend
+    image: app-frontend
     ports:
       - "80:80"
+      - "443:443"
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - email_archive:/app/email-archive:ro
     depends_on:
       - backend
     restart: unless-stopped
 
 volumes:
   db_data:
+  email_archive:
