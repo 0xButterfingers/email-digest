@@ -191,20 +191,17 @@ class PdfService:
 
                 pdf.set_x(pdf.l_margin)
                 pdf.set_font("Helvetica", "I", 8)
-                pdf.set_text_color(120, 120, 120)
+                pdf.set_text_color(26, 58, 92)
                 if footnote_num > 0 and footnote_num in footnote_links:
-                    # Render "Source: SenderName " then clickable "[n]"
-                    source_prefix = f"Source: {sender_name} "
-                    pdf.cell(pdf.get_string_width(_s(source_prefix)), 5, _s(source_prefix))
-                    # Clickable footnote reference
-                    pdf.set_text_color(26, 58, 92)
-                    link_text = f"[{footnote_num}]"
-                    link_w = pdf.get_string_width(_s(link_text))
+                    # Entire source line is clickable, linking to footnote
+                    source_text = f"Source: {sender_name} [{footnote_num}]"
                     link_y = pdf.get_y()
                     link_x = pdf.get_x()
-                    pdf.cell(link_w, 5, _s(link_text), new_x="LMARGIN", new_y="NEXT")
-                    pdf.link(link_x, link_y, link_w, 5, footnote_links[footnote_num])
+                    source_w = pdf.get_string_width(_s(source_text))
+                    pdf.cell(source_w, 5, _s(source_text), new_x="LMARGIN", new_y="NEXT")
+                    pdf.link(link_x, link_y, source_w, 5, footnote_links[footnote_num])
                 else:
+                    pdf.set_text_color(120, 120, 120)
                     source_text = f"Source: {sender_name}"
                     pdf.multi_cell(0, 5, _s(source_text))
                 pdf.ln(4)
