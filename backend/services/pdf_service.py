@@ -100,10 +100,16 @@ class PdfService:
             pdf.ln(6)
 
             items, footnotes = self._build_footnotes(items, emails, archive_urls, archive_base_url)
-            self._render_body(pdf, items, emails)
+
+            # Pre-create internal link targets for each footnote (destination set later)
+            footnote_links = {}
+            for fn in footnotes:
+                footnote_links[fn["num"]] = pdf.add_link()
+
+            self._render_body(pdf, items, emails, footnote_links)
 
             if footnotes:
-                self._render_footnotes(pdf, footnotes)
+                self._render_footnotes(pdf, footnotes, footnote_links)
 
             if images:
                 self._render_images(pdf, images)
@@ -143,8 +149,10 @@ class PdfService:
             item["footnote_num"] = seen[idx]
         return items, footnotes
 
-    def _render_body(self, pdf, items, emails=None):
+    def _render_body(self, pdf, items, emails=None, footnote_links=None):
         emails = emails or []
+        footnote_links = footnote_links or {}
+
         by_category = {}
         for item in items:
             cat = item.get("category", "Others")
@@ -184,14 +192,25 @@ class PdfService:
                 pdf.set_x(pdf.l_margin)
                 pdf.set_font("Helvetica", "I", 8)
                 pdf.set_text_color(120, 120, 120)
-                if footnote_num > 0:
-                    source_text = f"Source: {sender_name} [{footnote_num}]"
+                if footnote_num > 0 and footnote_num in footnote_links:
+                    # Render "Source: SenderName " then clickable "[n]"
+                    source_prefix = f"Source: {sender_name} "
+                    pdf.cell(pdf.get_string_width(_s(source_prefix)), 5, _s(source_prefix))
+                    # Clickable footnote reference
+                    pdf.set_text_color(26, 58, 92)
+                    link_text = f"[{footnote_num}]"
+                    link_w = pdf.get_string_width(_s(link_text))
+                    link_y = pdf.get_y()
+                    link_x = pdf.get_x()
+                    pdf.cell(link_w, 5, _s(link_text), new_x="LMARGIN", new_y="NEXT")
+                    pdf.link(link_x, link_y, link_w, 5, footnote_links[footnote_num])
                 else:
                     source_text = f"Source: {sender_name}"
-                pdf.multi_cell(0, 5, _s(source_text))
+                    pdf.multi_cell(0, 5, _s(source_text))
                 pdf.ln(4)
 
-    def _render_footnotes(self, pdf, footnotes):
+    def _render_footnotes(self, pdf, footnotes, footnote_links=None):
+        footnote_links = footnote_links or {}
         pdf.add_page()
         pdf.set_font("Helvetica", "B", 13)
         pdf.set_text_color(26, 58, 92)
@@ -207,6 +226,10 @@ class PdfService:
             subject = fn["subject"]
             date = fn["date"]
             url = fn["url"]
+
+            # Set the link destination so clicking [n] in the body jumps here
+            if num in footnote_links:
+                pdf.set_link(footnote_links[num], y=pdf.get_y(), page=pdf.page_no())
 
             pdf.set_font("Helvetica", "B", 9)
             pdf.set_text_color(26, 58, 92)
