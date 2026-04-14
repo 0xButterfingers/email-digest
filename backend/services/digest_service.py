@@ -271,7 +271,7 @@ class DigestService:
             )
 
             # Fetch emails
-            emails, raw_payloads = self.gmail_service.fetch_emails(service, query, max_results=10)
+            emails, raw_payloads = self.gmail_service.fetch_emails(service, query, max_results=50)
             logger.info(f"Fetched {len(emails)} emails for digest {digest.name}")
             return (emails, raw_payloads, service)
 
