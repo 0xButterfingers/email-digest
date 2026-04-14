@@ -2,7 +2,9 @@ const API_BASE = '/api'
 
 // Helper function for API calls
 async function apiCall(endpoint, options = {}) {
-  const url = `${API_BASE}${endpoint}`
+  // Strip trailing slash to avoid FastAPI redirect issues through nginx proxy
+  const cleanEndpoint = endpoint.replace(/\/+$/, '')
+  const url = `${API_BASE}${cleanEndpoint}`
   const response = await fetch(url, {
     headers: {
       'Content-Type': 'application/json',
