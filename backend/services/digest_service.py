@@ -124,9 +124,11 @@ class DigestService:
                         images=all_images or None,
                     )
                 else:
-                    # Fallback: LLM returned plain text
+                    # Fallback: LLM returned plain text — parse into basic items
+                    logger.warning("Using plain text fallback for PDF generation")
+                    fallback_items = self._parse_plain_text_to_items(summaries.get("detailed", ""))
                     pdf_bytes = self.pdf_service.generate(
-                        items=[],
+                        items=fallback_items,
                         emails=emails,
                         archive_urls=archive_urls,
                         digest_name=digest.name,
@@ -276,6 +278,41 @@ class DigestService:
         except Exception as e:
             logger.error(f"Error fetching emails: {e}")
             return ([], {}, None)
+
+    @staticmethod
+    def _parse_plain_text_to_items(text: str) -> list:
+        """Parse old-style plain text detailed summary into structured items."""
+        import re
+        items = []
+        current_category = "Others"
+        categories = {"Macro", "FX", "Bonds", "Others"}
+        lines = text.splitlines()
+        i = 0
+        while i < len(lines):
+            stripped = lines[i].strip()
+            if stripped in categories:
+                current_category = stripped
+                i += 1
+                continue
+            if stripped.startswith("- "):
+                headline = stripped[2:].strip()
+                body_lines = []
+                i += 1
+                while i < len(lines):
+                    line = lines[i].strip()
+                    if line.startswith("Source:") or line.startswith("- ") or line in categories or not line:
+                        break
+                    body_lines.append(line)
+                    i += 1
+                items.append({
+                    "category": current_category,
+                    "headline": headline,
+                    "body": " ".join(body_lines),
+                    "source_email_index": 0,
+                })
+                continue
+            i += 1
+        return items
 
     async def _get_channels(
         self, digest_id: int, session: AsyncSession
