@@ -2,9 +2,7 @@ const API_BASE = '/api'
 
 // Helper function for API calls
 async function apiCall(endpoint, options = {}) {
-  // Strip trailing slash to avoid FastAPI redirect issues through nginx proxy
-  const cleanEndpoint = endpoint.replace(/\/+$/, '')
-  const url = `${API_BASE}${cleanEndpoint}`
+  const url = `${API_BASE}${endpoint}`
   const response = await fetch(url, {
     headers: {
       'Content-Type': 'application/json',
@@ -64,7 +62,7 @@ export const gmail = {
 
 // Scheduler endpoints
 export const scheduler = {
-  status: () => apiCall('/scheduler/status/'),
-  start: () => apiCall('/scheduler/start/', { method: 'POST' }),
-  stop: () => apiCall('/scheduler/stop/', { method: 'POST' }),
+  status: () => apiCall('/scheduler/status'),
+  start: () => apiCall('/scheduler/start', { method: 'POST' }),
+  stop: () => apiCall('/scheduler/stop', { method: 'POST' }),
 }
