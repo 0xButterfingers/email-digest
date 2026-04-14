@@ -50,28 +50,108 @@ class LLMService:
             raw = message.content[0].text
             logger.info(f"Generated summary for {len(emails)} emails")
 
-            # Split on the marker Claude is instructed to include
+            # Split on the marker
             if "---DETAILED---" in raw:
                 parts = raw.split("---DETAILED---", 1)
                 executive = parts[0].strip()
                 detailed_raw = parts[1].strip()
 
-                # Strip markdown code fences (```json ... ```)
-                detailed_raw = re.sub(r"^```(?:json)?\s*", "", detailed_raw)
-                detailed_raw = re.sub(r"\s*```$", "", detailed_raw)
-                try:
-                    detailed_items = json.loads(detailed_raw)
-                    return {"executive": executive, "detailed_items": detailed_items}
-                except json.JSONDecodeError:
-                    logger.warning("LLM returned invalid JSON, falling back to plain text")
+                # Parse plain text into structured items
+                items = self._parse_detailed_text(detailed_raw)
+                if items:
+                    logger.info(f"Parsed {len(items)} items from detailed text")
+                    return {"executive": executive, "detailed_items": items}
+                else:
+                    logger.warning("Could not parse detailed text into items")
                     return {"executive": executive, "detailed": detailed_raw}
 
-            # Fallback: use full response for both
             return {"executive": raw.strip(), "detailed": raw.strip()}
 
         except Exception as e:
             logger.error(f"Error summarizing emails: {e}")
             raise
+
+    @staticmethod
+    def _parse_detailed_text(text: str) -> List[Dict]:
+        """Parse the plain-text detailed section into structured items."""
+        categories = {"Macro", "FX", "Bonds", "Others"}
+        items = []
+        current_category = "Others"
+
+        lines = text.split("\n")
+        i = 0
+        while i < len(lines):
+            line = lines[i].strip()
+
+            # Category heading
+            if line in categories:
+                current_category = line
+                i += 1
+                continue
+
+            # Item headline: starts with ##
+            if line.startswith("## ") or line.startswith("##"):
+                headline = line.lstrip("#").strip()
+                body_lines = []
+                source_index = 0
+                i += 1
+
+                # Collect body and source lines
+                while i < len(lines):
+                    l = lines[i].strip()
+                    if l.startswith("## ") or l in categories:
+                        break
+                    if l.lower().startswith("source:"):
+                        # Parse "Source: Email N" -> index N-1
+                        import re as _re
+                        m = _re.search(r"email\s*(\d+)", l, _re.IGNORECASE)
+                        if m:
+                            source_index = int(m.group(1)) - 1
+                        i += 1
+                        break
+                    if l:
+                        body_lines.append(l)
+                    i += 1
+
+                items.append({
+                    "category": current_category,
+                    "headline": headline,
+                    "body": " ".join(body_lines),
+                    "source_email_index": max(0, source_index),
+                })
+                continue
+
+            # Also handle "- " style items (old format fallback)
+            if line.startswith("- "):
+                headline = line[2:].strip()
+                body_lines = []
+                source_index = 0
+                i += 1
+                while i < len(lines):
+                    l = lines[i].strip()
+                    if l.startswith("- ") or l in categories or l.startswith("## "):
+                        break
+                    if l.lower().startswith("source:"):
+                        import re as _re
+                        m = _re.search(r"email\s*(\d+)", l, _re.IGNORECASE)
+                        if m:
+                            source_index = int(m.group(1)) - 1
+                        i += 1
+                        break
+                    if l:
+                        body_lines.append(l)
+                    i += 1
+                items.append({
+                    "category": current_category,
+                    "headline": headline,
+                    "body": " ".join(body_lines),
+                    "source_email_index": max(0, source_index),
+                })
+                continue
+
+            i += 1
+
+        return items
 
     def _format_emails(self, emails: List[Dict[str, Any]]) -> str:
         """
@@ -134,19 +214,27 @@ class LLMService:
             "• [One-line highlight — bank name, instrument, key call]\n\n"
             "Omit any category heading that has no items.\n\n"
             "=== SECTION 2: FULL DETAILED REPORT (after ---DETAILED---) ===\n"
-            "Output a JSON array only — no prose, no headings, no HTML tags.\n"
-            "Each element must have exactly these fields:\n\n"
-            '  {\n'
-            '    "category": "Macro" | "FX" | "Bonds" | "Others",\n'
-            '    "headline": "short headline — instrument/topic and key figure or call",\n'
-            '    "body": "2-3 sentences of key points copied closely from the email",\n'
-            '    "source_email_index": <0-based integer index of the source email>\n'
-            '  }\n\n'
+            "Plain text only (no HTML tags). Use EXACTLY this format:\n\n"
+            "CATEGORY_NAME\n"
+            "## Headline — key figure or call\n"
+            "Body text: 2-3 sentences of key points copied closely from the email.\n"
+            "Source: Email INDEX\n"
+            "\n"
+            "Example:\n"
+            "Macro\n"
+            "## US CPI — March print at 2.4% YoY, below consensus 2.6%\n"
+            "Core CPI fell to 2.8% from 3.0%, driven by shelter disinflation. Markets now pricing 3 cuts by year-end.\n"
+            "Source: Email 1\n"
+            "\n"
             "Rules for Section 2:\n"
-            "- Return ONLY the JSON array, with no surrounding text or markdown fences.\n"
+            "- Category line must be exactly one of: Macro, FX, Bonds, Others\n"
+            "- Each item starts with ## followed by the headline\n"
+            "- Body is 2-3 plain text sentences on the next line(s)\n"
+            "- Source line must be: Source: Email N (where N is the email number, starting from 1)\n"
+            "- Blank line between items\n"
             "- Include all explicitly stated figures — copy them exactly as written.\n"
-            "- Omit any item that has no useful data from the emails.\n"
-            "- Do not use HTML tags anywhere in the JSON values.\n\n"
+            "- Omit any category that has no items from the emails.\n"
+            "- No HTML tags anywhere.\n\n"
             f"Emails:\n{formatted_emails}"
         )
 
