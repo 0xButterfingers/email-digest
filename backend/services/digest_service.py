@@ -126,7 +126,10 @@ class DigestService:
                 else:
                     # Fallback: LLM returned plain text — parse into basic items
                     logger.warning("Using plain text fallback for PDF generation")
-                    fallback_items = self._parse_plain_text_to_items(summaries.get("detailed", ""))
+                    detailed_text = summaries.get("detailed", "")
+                    logger.info(f"Fallback text length: {len(detailed_text)}, first 200 chars: {detailed_text[:200]}")
+                    fallback_items = self._parse_plain_text_to_items(detailed_text)
+                    logger.info(f"Fallback parser produced {len(fallback_items)} items")
                     pdf_bytes = self.pdf_service.generate(
                         items=fallback_items,
                         emails=emails,
