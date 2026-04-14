@@ -26,7 +26,7 @@ export const digests = {
   get: (id) => apiCall(`/digests/${id}`),
   update: (id, data) => apiCall(`/digests/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id) => apiCall(`/digests/${id}`, { method: 'DELETE' }),
-  run: (id) => apiCall(`/digests/${id}/run`, { method: 'POST' }),
+  run: (id) => apiCall(`/digests/${id}/run/`, { method: 'POST' }),
 }
 
 // Filter endpoints
