@@ -2,6 +2,7 @@
 
 import json
 import logging
+import os
 import secrets
 from pathlib import Path
 from typing import Optional
@@ -33,7 +34,7 @@ oauth_states = {}
 
 GLOBAL_TOKEN_PATH = Path(__file__).parent.parent / "gmail_token.json"
 GLOBAL_STATE_MARKER = "global"
-FRONTEND_ORIGIN = "http://localhost:5173"
+FRONTEND_ORIGIN = os.environ.get("FRONTEND_ORIGIN", "http://localhost:5173")
 
 
 @router.get("/gmail/url", response_model=GlobalGmailAuthUrlResponse)
